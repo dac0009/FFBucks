@@ -1,0 +1,33 @@
+name: Sync sportsbook
+
+# Every 15 minutes: reads the league site's public lines file and hands it to the
+# sportsbook database, which posts new lines, moves lock times and grades
+# finished games. Never touches ESPN. Click "Run workflow" to sync right now.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: sync-sportsbook
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --omit=dev
+      - name: Sync lines and results
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: node scripts/sync.mjs
