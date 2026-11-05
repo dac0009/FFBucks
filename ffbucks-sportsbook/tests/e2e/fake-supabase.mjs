@@ -12,7 +12,8 @@ import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 
 const PORT = Number(process.env.PORT || 54321);
-const migration = readFileSync(new URL('../../supabase/migrations/202611040001_sportsbook.sql', import.meta.url), 'utf8');
+const migrations = ['202611040001_sportsbook.sql', '202611050001_site_look.sql']
+  .map((name) => readFileSync(new URL(`../../supabase/migrations/${name}`, import.meta.url), 'utf8'));
 
 const db = new PGlite();
 await db.exec(`create role anon; create role authenticated; create role service_role; create schema auth;
@@ -21,7 +22,7 @@ await db.exec(`create role anon; create role authenticated; create role service_
   grant usage on schema auth to anon,authenticated,service_role;
   grant execute on function auth.uid() to anon,authenticated,service_role;
   grant usage on schema public to anon,authenticated,service_role;`);
-await db.exec(migration);
+for (const migration of migrations) await db.exec(migration);
 
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const jwt = (sub) => `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub, role: 'authenticated', exp: Math.floor(Date.now() / 1000) + 86400 })}.sig`;

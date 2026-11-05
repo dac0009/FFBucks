@@ -5,6 +5,7 @@ import BetCard from '../components/BetCard';
 import { loadFeed } from '../lib/feed';
 import { db, fmt, message, num, signed, type FeedBet, type Member, type Standing } from '../lib/supabase';
 import { useBook } from '../lib/book';
+import { useText } from '../lib/lookContext';
 import { profileStats } from '../lib/odds.mjs';
 
 type LedgerRow = { id: number; created_at: string; balance_after: number; kind: string };
@@ -12,6 +13,7 @@ type LedgerRow = { id: number; created_at: string; balance_after: number; kind: 
 export default function Profile() {
   const params = useParams();
   const { me, state } = useBook();
+  const t = useText();
   const owner = params.owner ?? me?.owner_id;
   const [member, setMember] = useState<Member | null>(null);
   const [standing, setStanding] = useState<Standing | null>(null);
@@ -47,7 +49,7 @@ export default function Profile() {
     <div className="page">
       <div className="page-head">
         <h1>{member?.display_name ?? owner}</h1>
-        <p className="muted">{isMe ? 'Your book.' : 'Everything here is public to the league.'}</p>
+        <p className="muted">{isMe ? t('profile.mine') : t('profile.theirs')}</p>
       </div>
       {error && <p className="error" role="alert">{error}</p>}
       <dl className="stats">
@@ -64,11 +66,11 @@ export default function Profile() {
       </section>
       <div className="two">
         <section className="panel">
-          <h2>Best hit</h2>
+          <h2>{t('profile.best')}</h2>
           {allTime.best ? <BetCard bet={allTime.best} actions={false} /> : <p className="empty">No winners yet.</p>}
         </section>
         <section className="panel">
-          <h2>Worst beat</h2>
+          <h2>{t('profile.worst')}</h2>
           {allTime.worst ? <BetCard bet={allTime.worst} actions={false} /> : <p className="empty">No losses yet.</p>}
         </section>
       </div>

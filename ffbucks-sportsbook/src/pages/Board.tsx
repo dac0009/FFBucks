@@ -6,6 +6,7 @@ import {
   payout, priceLeg, slipProblem,
 } from '../lib/odds.mjs';
 import Jackpot from '../components/Jackpot';
+import { useText } from '../lib/lookContext';
 
 type Pick = { line_id: string; market: Market; side: Side; price: number; point: number | null; label: string; game: string };
 
@@ -21,6 +22,7 @@ function pickLabel(line: Line, market: Market, side: Side, point: number | null)
 
 export default function Board() {
   const { me, state, jackpot, refresh } = useBook();
+  const t = useText();
   const now = useNow(1000);
   const [lines, setLines] = useState<Line[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -101,10 +103,10 @@ export default function Board() {
       <div className="board-main">
         <Jackpot amount={jackpot} season={state?.season} />
         <div className="board-head">
-          <h1>{week ? `Week ${week} lines` : 'Lines'}</h1>
+          <h1>{week ? t('board.title', { week }) : t('nav.board')}</h1>
           <p className="muted">
-            {loaded && lines.length === 0 && 'No lines yet. They post after the Tuesday data refresh.'}
-            {lines.length > 0 && `${openCount} of ${lines.length} games open. Each game locks at the first kickoff of any player on either roster.`}
+            {loaded && lines.length === 0 && t('board.empty')}
+            {lines.length > 0 && t('board.intro', { open: openCount, total: lines.length })}
           </p>
         </div>
         <div className="lines">
@@ -151,7 +153,7 @@ export default function Board() {
                       : locked ? 'Locked' : `Locks in ${countdown(line.lock_at, now)}`}
                   </span>
                   {line.lock_game && line.status === 'open' && <span className="muted">{line.lock_game}, {when(line.lock_at)}</span>}
-                  {mine && <span className="pill">Your game</span>}
+                  {mine && <span className="pill">{t('board.yours')}</span>}
                 </header>
                 <div className="game-cols" aria-hidden="true"><span /><span>Spread</span><span>Total</span><span>Money</span></div>
                 {row('away')}
@@ -164,10 +166,10 @@ export default function Board() {
 
       <aside className={`slip${slipOpen ? ' open' : ''}`} aria-label="Bet slip">
         <button className="slip-handle" onClick={() => setSlipOpen(!slipOpen)}>
-          Bet slip {slip.length > 0 && <span className="count">{slip.length}</span>}
+          {t('slip.title')} {slip.length > 0 && <span className="count">{slip.length}</span>}
         </button>
         <div className="slip-body">
-          {slip.length === 0 && !placed && <p className="empty">Tap any price to add it. Add up to six games for a parlay.</p>}
+          {slip.length === 0 && !placed && <p className="empty">{t('slip.empty')}</p>}
           {placed && <p className="ok" role="status">{placed}</p>}
           <ul className="slip-legs">
             {slip.map((p) => (
@@ -192,7 +194,7 @@ export default function Board() {
               </div>
               <p className="towin">To win <b>{fmt(toWin)}</b> <span className="muted">(returns {fmt(stakeNum + toWin)})</span></p>
               <button className="btn" disabled={busy || !stakeNum} onClick={place}>
-                {slip.length > 1 ? 'Place parlay' : 'Place bet'}
+                {slip.length > 1 ? t('slip.parlay') : t('slip.place')}
               </button>
               <button className="linkish" onClick={() => setSlip([])}>Clear slip</button>
             </div>

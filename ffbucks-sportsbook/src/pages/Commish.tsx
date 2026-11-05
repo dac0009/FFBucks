@@ -18,6 +18,10 @@ export default function Commish() {
           Last sync {state?.last_sync_at ? when(state.last_sync_at) : 'never'}{state?.last_sync_note ? `: ${state.last_sync_note}` : ''}.
         </p>
       </div>
+      <section className="panel">
+        <h2>Look and wording</h2>
+        <p>Use the <b>Edit look</b> button at the bottom of any page to change colors, fonts and wording. Only you can see it.</p>
+      </section>
       <TipLink current={state?.tip_url ?? null} onSaved={refresh} />
       <Invites />
       <PullLine season={state?.season} />

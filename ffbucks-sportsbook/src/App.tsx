@@ -1,5 +1,6 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { BookProvider, useBook } from './lib/book';
+import { LookProvider } from './lib/lookContext';
 import { configured } from './lib/supabase';
 import Layout from './components/Layout';
 import Board from './pages/Board';
@@ -14,7 +15,7 @@ function Gate() {
   if (!configured) {
     return (
       <div className="gate"><div className="gate-card">
-        <h1 className="gate-title"><span className="wm-ff">FF</span><span className="wm-bucks">Bucks</span></h1>
+        <h1 className="gate-title">FFBucks</h1>
         <p>This site isn’t connected to its database yet. Add the VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY repository variables, then run “Deploy sportsbook”.</p>
       </div></div>
     );
@@ -40,9 +41,11 @@ function Gate() {
 export default function App() {
   return (
     <HashRouter>
-      <BookProvider>
-        <Gate />
-      </BookProvider>
+      <LookProvider>
+        <BookProvider>
+          <Gate />
+        </BookProvider>
+      </LookProvider>
     </HashRouter>
   );
 }

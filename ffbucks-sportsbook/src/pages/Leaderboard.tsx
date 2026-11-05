@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 import Jackpot from '../components/Jackpot';
 import { db, fmt, message, num, signed, type Standing } from '../lib/supabase';
 import { useBook } from '../lib/book';
+import { useText } from '../lib/lookContext';
 
 type Archive = { season: number; jackpot: number; standings: Standing[] };
 
 export default function Leaderboard() {
   const { me, state, jackpot, refresh } = useBook();
+  const t = useText();
   const [rows, setRows] = useState<Standing[]>([]);
   const [archive, setArchive] = useState<Archive[]>([]);
   const [error, setError] = useState('');
@@ -37,8 +39,8 @@ export default function Leaderboard() {
     <div className="page">
       <Jackpot amount={jackpot} season={state?.season} />
       <div className="page-head">
-        <h1>{state?.season} standings</h1>
-        <p className="muted">Ranked by net: FFBucks won or lost on settled bets, minus top-ups this season. Topping up keeps you playing but can’t buy first place.</p>
+        <h1>{t('standings.title', { season: state?.season ?? '' })}</h1>
+        <p className="muted">{t('standings.intro')}</p>
       </div>
       <div className="table-wrap">
         <table className="standings">
@@ -61,10 +63,10 @@ export default function Leaderboard() {
       </div>
 
       <section className="panel">
-        <h2>Need more FFBucks?</h2>
-        <p>Top up 1,000 any time, broke or not. It adds 1,000 to your “owed to the pot” tally and the season pot. That tally is FFBucks only, never real money.</p>
+        <h2>{t('topup.title')}</h2>
+        <p>{t('topup.body')}</p>
         {!confirm
-          ? <button className="btn" onClick={() => setConfirm(true)}>Top up 1,000</button>
+          ? <button className="btn" onClick={() => setConfirm(true)}>{t('topup.button')}</button>
           : <div className="row">
               <button className="btn" disabled={busy} onClick={topUp}>Yes, add 1,000 to my owed tally</button>
               <button className="linkish" onClick={() => setConfirm(false)}>Cancel</button>

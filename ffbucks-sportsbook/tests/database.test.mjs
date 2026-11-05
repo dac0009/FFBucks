@@ -5,7 +5,8 @@ import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import { payout as jsPayout } from '../src/lib/odds.mjs';
 
-const migration = readFileSync(new URL('../supabase/migrations/202611040001_sportsbook.sql', import.meta.url), 'utf8');
+const migrations = ['202611040001_sportsbook.sql', '202611050001_site_look.sql']
+  .map((name) => readFileSync(new URL(`../supabase/migrations/${name}`, import.meta.url), 'utf8'));
 const U = {
   dom: '00000000-0000-0000-0000-00000000000d',
   alice: '00000000-0000-0000-0000-00000000000a',
@@ -35,7 +36,7 @@ async function setup() {
     grant execute on function auth.uid() to anon,authenticated,service_role;
     grant usage on schema public to anon,authenticated,service_role;
     insert into auth.users values ${Object.values(U).map((u) => `('${u}')`).join(',')};`);
-  await db.exec(migration);
+  for (const migration of migrations) await db.exec(migration);
   const as = async (role, uid = '') => {
     await db.exec(`reset role; set role ${role};`);
     await db.query("select set_config('request.jwt.claim.sub',$1,false)", [uid]);
@@ -378,4 +379,53 @@ test('tip link: commissioner edits it, only https links, never touches FFBucks',
   assert.equal((await t.one('select tip_url from public.book_state')).tip_url, null);
   assert.equal(await t.balance('dominick-cifelli'), before);
   assert.equal(Number((await t.one("select count(*) n from public.ledger where owner_id='dominick-cifelli'")).n), 1);
+});
+
+test('look editor: anyone can read it, only the commissioner can change it, every value is checked', async () => {
+  const t = await league();
+  await t.as('anon');
+  const first = (await t.one('select public.get_site_look() l')).l;
+  assert.deepEqual([first.theme, first.copy, first.has_previous], [{}, {}, false]);
+  await assert.rejects(t.db.query('select * from public.site_look'), /permission denied/);
+  await assert.rejects(t.db.query(`select public.set_site_look('{}'::jsonb, '{}'::jsonb)`), /permission denied/);
+
+  await assert.rejects(t.call('alice', `select public.set_site_look('{"bg":"#000000"}'::jsonb, '{}'::jsonb)`), /Commissioner only/);
+  await assert.rejects(t.call('alice', 'select public.restore_site_look()'), /Commissioner only/);
+  await t.as('authenticated', U.alice);
+  await assert.rejects(t.db.query("update public.site_look set theme = '{}'"), /permission denied/);
+
+  const saved = (await t.call('dom', 'select public.set_site_look($1::jsonb, $2::jsonb) l',
+    [JSON.stringify({ bg: '#F6F3EC', font_display: 'Old Standard TT' }), JSON.stringify({ 'brand.name': 'The Daily Line' })])).l;
+  assert.deepEqual(saved.theme, { bg: '#F6F3EC', font_display: 'Old Standard TT' });
+  assert.equal(saved.copy['brand.name'], 'The Daily Line');
+  assert.equal(saved.has_previous, true);
+  await t.as('anon');
+  assert.equal((await t.one('select public.get_site_look() l')).l.copy['brand.name'], 'The Daily Line');
+
+  const bad = [
+    [{ bg: 'red' }, {}, /must look like/],
+    [{ bg: '#12345' }, {}, /must look like/],
+    [{ bg: 'url(javascript:alert(1))' }, {}, /must look like/],
+    [{ font_body: 'Comic Sans MS' }, {}, /available fonts/],
+    [{ background_image: '#ffffff' }, {}, /Unknown look setting/],
+    [{}, { 'Brand Name': 'x' }, /Unknown wording key/],
+    [{}, { 'brand.name': 'x'.repeat(501) }, /under 500/],
+    [{}, { 'brand.name': 5 }, /under 500/],
+    [{}, Object.fromEntries(Array.from({ length: 201 }, (_, i) => [`k${i}`, 'x'])), /Too many/],
+    [[], {}, /list of settings/],
+  ];
+  for (const [theme, copy, why] of bad) {
+    await assert.rejects(t.call('dom', 'select public.set_site_look($1::jsonb, $2::jsonb)', [JSON.stringify(theme), JSON.stringify(copy)]), why, JSON.stringify(theme) + JSON.stringify(copy).slice(0, 40));
+  }
+  // A rejected save changes nothing.
+  await t.as('anon');
+  assert.equal((await t.one('select public.get_site_look() l')).l.theme.bg, '#F6F3EC');
+
+  // Undo swaps back to the version before the last save, and again to redo.
+  const undone = (await t.call('dom', 'select public.restore_site_look() l')).l;
+  assert.deepEqual([undone.theme, undone.copy], [{}, {}]);
+  const redone = (await t.call('dom', 'select public.restore_site_look() l')).l;
+  assert.equal(redone.copy['brand.name'], 'The Daily Line');
+  // The look never touches anyone's FFBucks.
+  assert.equal(await t.balance('dominick-cifelli'), 1000);
 });

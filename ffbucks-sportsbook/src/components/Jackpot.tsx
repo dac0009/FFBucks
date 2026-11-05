@@ -1,7 +1,9 @@
 import { fmt } from '../lib/supabase';
+import { useText } from '../lib/lookContext';
 
 /** The pot, drawn like a banknote. */
 export default function Jackpot({ amount, season }: { amount: number; season: number | undefined }) {
+  const t = useText();
   return (
     <section className="note" aria-label="Season pot">
       <svg className="note-guilloche" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true">
@@ -10,9 +12,9 @@ export default function Jackpot({ amount, season }: { amount: number; season: nu
         ))}
       </svg>
       <div className="note-body">
-        <p className="note-title">The {season ?? ''} pot</p>
+        <p className="note-title">{t('pot.title', { season: season ?? '' })}</p>
         <p className="note-amount"><span className="note-sign">F$</span>{fmt(amount)}</p>
-        <p className="note-sub">Every top-up this season adds 1,000. Saved to the record at season end, then starts over.</p>
+        <p className="note-sub">{t('pot.sub')}</p>
       </div>
     </section>
   );

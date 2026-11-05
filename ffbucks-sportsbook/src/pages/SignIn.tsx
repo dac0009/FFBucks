@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { db, message } from '../lib/supabase';
 import { useBook } from '../lib/book';
+import { useText } from '../lib/lookContext';
 
 export function SignIn() {
+  const t = useText();
   const [mode, setMode] = useState<'in' | 'up'>('in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,8 +28,9 @@ export function SignIn() {
   return (
     <div className="gate">
       <div className="gate-card">
-        <h1 className="gate-title"><span className="wm-ff">FF</span><span className="wm-bucks">Bucks</span></h1>
-        <p className="gate-lede">The FFBFFL book. Bet play money on your friends’ matchups.</p>
+        <p className="gate-kicker">{t('brand.kicker')}</p>
+        <h1 className="gate-title">{t('brand.name')}</h1>
+        <p className="gate-lede">{t('signin.lede')}</p>
         <div className="tabs" role="tablist">
           <button role="tab" aria-selected={mode === 'in'} className={mode === 'in' ? 'on' : ''} onClick={() => setMode('in')}>Sign in</button>
           <button role="tab" aria-selected={mode === 'up'} className={mode === 'up' ? 'on' : ''} onClick={() => setMode('up')}>First time here</button>
@@ -47,6 +50,7 @@ export function SignIn() {
 }
 
 export function Join() {
+  const t = useText();
   const { refresh, session } = useBook();
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
@@ -64,14 +68,15 @@ export function Join() {
   return (
     <div className="gate">
       <div className="gate-card">
-        <h1 className="gate-title"><span className="wm-ff">FF</span><span className="wm-bucks">Bucks</span></h1>
-        <p className="gate-lede">Signed in as {session?.user.email}. Enter your invite code to link this login to your team.</p>
+        <p className="gate-kicker">{t('brand.kicker')}</p>
+        <h1 className="gate-title">{t('brand.name')}</h1>
+        <p className="gate-lede">Signed in as {session?.user.email}. {t('signin.join')}</p>
         <form onSubmit={submit} className="stack">
           <label>Invite code<input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} autoCapitalize="characters" required /></label>
           <button className="btn" disabled={busy}>Join the book</button>
           {error && <p className="error" role="alert">{error}</p>}
         </form>
-        <p className="fine">First time joining gets you 1,000 free FFBucks.</p>
+        <p className="fine">{t('signin.bonus')}</p>
         <button className="linkish" onClick={() => db().auth.signOut()}>Use a different login</button>
       </div>
     </div>
